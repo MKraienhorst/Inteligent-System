@@ -1,0 +1,11 @@
+The training images should stored in a folder ("ISIC2018_Task3_Training_Input_test") one step before the repository directory. 
+So the path from the main is "../ISIC2018_Task3_Training_Input_test"; do the same for "ISIC2018_Task3_Training_GroundTruth".
+
+Documents
+Everything for documentation and explanation belongs in here.
+
+Includes
+All source files which are not the main, should be included here
+
+Results 
+Every file which shows the results of our classifiers should be placed in here.

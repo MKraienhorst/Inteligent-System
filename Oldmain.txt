@@ -1,0 +1,136 @@
+import sys
+sys.path.append('./Includes')
+from brightHairRemoval import brightHairRemoval
+from darkHairRemoval import darkHairRemoval
+from segmentmole import segmentmole
+from feature import FeatureVec
+from sklearn import preprocessing
+
+import matplotlib.pyplot as plt
+import os
+import cv2
+from PIL import Image
+import numpy as np
+import pandas as pd
+import configparser
+import random
+import decimal as d
+import csv
+import configparser
+# from color_texture_feature import colorhsv
+
+# open the configuration file and initialise variables
+config = configparser.ConfigParser()
+config.read('./Documents/init.ini')
+
+FeatureMatrixName = config['DEFAULT']['FeatureMatrixName']
+
+# reading image path from config file is not working yet, do not how to pass the "r" (see "path")
+path = (r"..\ISIC2018_Task3_Training_Input_test")
+# path = (r"..\ISIC2018_Task3_Test_Input")
+path2 = (r"..\intelligentsystems\Documents")
+
+def initialize(path):
+     # load image list
+     os.chdir(path)
+
+     testData = []
+     with open('val_split_info.csv') as csvDataFile:
+          csvReader = csv.reader(csvDataFile)
+          for row in csvReader:
+               testData.append(row[0])
+     # testData = csv.reader(open('val_split_info.csv'))
+     
+     testImages = []
+     trainingImages = []
+     for image in os.listdir(path):
+          if image.endswith('.jpg') or image.endswith('.JPG'):
+               if image in testData:
+                    testImages.append(image)
+               else:
+                    trainingImages.append(image)
+     
+     return testImages, trainingImages
+
+
+
+testImages, trainingImages = initialize(path)
+print(len(testImages))
+print(len(trainingImages))
+
+# ------------------- Training Images -------------------
+im = []
+color = []
+haralick=[]
+
+for i in range(5):
+     # read image
+     os.chdir(path)
+     img = cv2.imread(trainingImages[i]) 
+     
+     # preprocessing function
+     imgNew1 = brightHairRemoval(img)                
+     imgNew2 = darkHairRemoval(img,imgNew1)  
+     
+     # region segmentation function 
+     # returns the from the original image cropped segmented region of the mole
+     
+     # image = segmentmole(img,rot=None,shape=None)       
+     # cv2.imshow('mit Haaren',image)       
+     image = segmentmole(imgNew2,rot=None,shape='hull')    
+     # cv2.imshow('ohne Haare',image)      
+     # cv2.waitKey(0)          
+     # cv2.destroyAllWindows() 
+     
+     # color1 = colorhsv(image) 
+     # color.append(color1)
+     texture=extract_features(image)
+     haralick.append(texture)
+     im.append(image)
+     print(i)
+
+color = preprocessing.scale(np.asarray(color))
+haralick=preprocessing.scale(np.asarray(haralick))
+color = color[:,:,0]
+com = FeatureVec(im)
+comcolor = np.hstack([com,color,haralick])
+
+os.chdir(path2)
+np.save('./FeatureMatrix_TrainingData_' + FeatureMatrixName + '.npy', com)
+# ------------------- End Training Images -------------------
+
+
+# ------------------- Test Images -------------------
+im = []
+color = []
+haralick=[]
+for i in range(5):
+     # read image
+     os.chdir(path)
+     img = cv2.imread(testImages[i]) 
+     
+     # preprocessing function
+     imgNew1 = brightHairRemoval(img)                
+     imgNew2 = darkHairRemoval(img,imgNew1)  
+     
+     # region segmentation function 
+     # returns the from the original image cropped segmented region of the mole
+     #image = segmentmole(img,rot=None,shape=None)       
+     image = segmentmole(imgNew2,rot=None,shape=None)    
+     
+     #color1 = colorhsv(image) 
+     #color.append(color1)
+     texture=extract_features(image)
+     haralick.append(texture)
+     im.append(image)
+     print(i)
+     
+color = preprocessing.scale(np.asarray(color))
+haralick=preprocessing.scale(np.asarray(haralick))
+# color = color[:,:,0]
+com = FeatureVec(im)
+# comcolor = np.hstack([com,color])
+
+os.chdir(path2)
+np.save('./FeatureMatrix_TestData_' + FeatureMatrixName + '.npy', com)
+# ------------------- End Test Images -------------------
